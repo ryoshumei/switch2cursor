@@ -4,6 +4,7 @@ import com.intellij.openapi.options.Configurable
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTextField
+import javax.swing.JCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.FormBuilder
 
@@ -19,17 +20,20 @@ class AppSettingsConfigurable : Configurable {
 
     override fun isModified(): Boolean {
         val settings = AppSettingsState.getInstance()
-        return mySettingsComponent!!.cursorPath != settings.cursorPath
+        return mySettingsComponent!!.cursorPath != settings.cursorPath ||
+               mySettingsComponent!!.openProjectWithFile != settings.openProjectWithFile
     }
 
     override fun apply() {
         val settings = AppSettingsState.getInstance()
         settings.cursorPath = mySettingsComponent!!.cursorPath
+        settings.openProjectWithFile = mySettingsComponent!!.openProjectWithFile
     }
 
     override fun reset() {
         val settings = AppSettingsState.getInstance()
         mySettingsComponent!!.cursorPath = settings.cursorPath
+        mySettingsComponent!!.openProjectWithFile = settings.openProjectWithFile
     }
 
     override fun disposeUIResources() {
@@ -40,10 +44,12 @@ class AppSettingsConfigurable : Configurable {
 class AppSettingsComponent {
     val panel: JPanel
     private val cursorPathText = JTextField()
+    private val openProjectWithFileCheckBox = JCheckBox("Also open project when using Option+Shift+O")
 
     init {
         panel = FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("Cursor Path: "), cursorPathText, 1, false)
+            .addComponent(openProjectWithFileCheckBox, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel
     }
@@ -52,5 +58,11 @@ class AppSettingsComponent {
         get() = cursorPathText.text
         set(value) {
             cursorPathText.text = value
+        }
+        
+    var openProjectWithFile: Boolean
+        get() = openProjectWithFileCheckBox.isSelected
+        set(value) {
+            openProjectWithFileCheckBox.isSelected = value
         }
 } 

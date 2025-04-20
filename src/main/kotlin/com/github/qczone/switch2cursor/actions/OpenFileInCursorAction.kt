@@ -31,7 +31,8 @@ class OpenFileInCursorAction : AnAction() {
         val settings = AppSettingsState.getInstance()
         val cursorPath = settings.cursorPath
         
-        val command = when {
+        // Command to open file and position cursor
+        val fileCommand = when {
             System.getProperty("os.name").lowercase().contains("mac") -> {
                 arrayOf("open", "-a", "$cursorPath", "cursor://file$filePath:$line:$column")
             }
@@ -43,26 +44,64 @@ class OpenFileInCursorAction : AnAction() {
             }
         }
         
-        try {
-            logger.info("Executing command: ${command.joinToString(" ")}")
-            ProcessBuilder(*command).start()
-        } catch (ex: Exception) {
-            logger.error("Failed to execute cursor command: ${ex.message}", ex)
-            com.intellij.openapi.ui.Messages.showErrorDialog(
-                project,
-                """
-                ${ex.message}
+        if (settings.openProjectWithFile) {
+            // Command to open project
+            val projectPath = project.basePath ?: return
+            val projectCommand = when {
+                System.getProperty("os.name").lowercase().contains("mac") -> {
+                    arrayOf("open", "-a", "$cursorPath", projectPath)
+                }
+                System.getProperty("os.name").lowercase().contains("windows") -> {
+                    arrayOf("cmd", "/c", "$cursorPath", projectPath)
+                }
+                else -> {
+                    arrayOf(cursorPath, projectPath)
+                }
+            }
+            
+            try {
+                logger.info("Executing project command: ${projectCommand.joinToString(" ")}")
+                ProcessBuilder(*projectCommand).start()
                 
-                Please check:
-                1. Cursor path is correctly configured in Settings > Tools > Switch2Cursor
-                2. Cursor is properly installed on your system
-                3. The configured path points to a valid Cursor executable
-                """.trimIndent(),
-                "Error"
-            )
+                // Give some time for the project to open, then open the file and position the cursor
+                Thread.sleep(1000)
+                
+                // Then open the file and position the cursor
+                logger.info("Executing file command: ${fileCommand.joinToString(" ")}")
+                ProcessBuilder(*fileCommand).start()
+            } catch (ex: Exception) {
+                logger.error("Failed to execute cursor command: ${ex.message}", ex)
+                showErrorDialog(project, ex)
+                return
+            }
+        } else {
+            // Only open the file and position the cursor
+            try {
+                logger.info("Executing file command: ${fileCommand.joinToString(" ")}")
+                ProcessBuilder(*fileCommand).start()
+            } catch (ex: Exception) {
+                logger.error("Failed to execute cursor command: ${ex.message}", ex)
+                showErrorDialog(project, ex)
+                return
+            }
         }
 
         WindowUtils.activeWindow()
+    }
+    
+    private fun showErrorDialog(project: Project, ex: Exception) {
+        com.intellij.openapi.ui.Messages.showErrorDialog(
+            project,
+            """
+            ${ex.message}
+            
+            Please check:
+            1. Cursor path is correctly configured in Settings > Tools > Switch2Cursor
+            2. Cursor is properly installed on your system
+            3. The configured path points to a valid Cursor executable
+            """.trimIndent(),
+            "Error"
+        )
     }
 
     override fun update(e: AnActionEvent) {

@@ -12,6 +12,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 )
 class AppSettingsState : PersistentStateComponent<AppSettingsState> {
     var cursorPath: String = "cursor"
+    var openProjectWithFile: Boolean = true
 
     override fun getState(): AppSettingsState = this
 
